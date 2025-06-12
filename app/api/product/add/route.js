@@ -1,7 +1,7 @@
 import connectDB from "@/config/db";
 import authSeller from "@/lib/authSeller";
 import Product from "@/models/Products";
-import { getAuth } from "@clerk/nextjs/dist/types/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { v2 as cloudnary } from "cloudinary";
 import { NextResponse } from "next/server";
 
@@ -27,7 +27,7 @@ export async function POST(request) {
     const price = formData.get("price");
     const offerPrice = formData.get("offerPrice");
 
-    const files = formData.getAll("image");
+    const files = formData.getAll("images");
 
     if (!files || files.length === 0) {
       return NextResponse.json({
@@ -65,13 +65,15 @@ export async function POST(request) {
       price: Number(price),
       offerPrice: Number(offerPrice),
       image,
-      data: Date.now(),
+      date: Date.now(),
     });
+    //console.log(newProduct) 
     return NextResponse.json({
       success: true,
       message: "Upload successful",
       newProduct,
     });
+    
   } catch (error) {
     return NextResponse.json({ success: false, message: error.message });
   }
