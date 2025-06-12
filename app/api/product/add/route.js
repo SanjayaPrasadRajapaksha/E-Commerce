@@ -1,0 +1,58 @@
+import authSeller from "@/lib/authSeller";
+import { getAuth } from "@clerk/nextjs/dist/types/server";
+import { v2 as cloudnary } from "cloudinary";
+import { NextResponse } from "next/server";
+
+cloudnary.config({
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+});
+
+export async function POST(request) {
+  try {
+    const { userId } = getAuth(request);
+    const isSeller = await authSeller(userId);
+
+    if (!isSeller) {
+      return NextResponse.json({ success: false, message: "Not authorized" });
+    }
+    const formData = await request.formData();
+
+    const name = formData.get("name");
+    const description = formData.get("description");
+    const category = formData.get("description");
+    const price = formData.get("price");
+    const offerPrice = formData.get("offerPrice");
+
+    const files = formData.getAll("image");
+
+    if (!files || files.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: "No files uploaded",
+      });
+    }
+    const result = await Promise.all(
+      files.map(async (file) => {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        return new Promise((resolve, reject) => {
+          const stream = cloudnary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+          stream.end(buffer);
+        });
+      })
+    );
+    const image = result.map((result) => result.secure_url);
+  } catch (error) {}
+}
