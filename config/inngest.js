@@ -50,22 +50,6 @@ export const syncUserUpdation = inngest.createFunction(
   }
 );
 
-// Inngest Function to delete user data to a databse
-export const syncUserDeletion = inngest.createFunction(
-  {
-    id: "delete-user-from-clerk",
-  },
-  {
-    event: "clerk/user.deleted",
-  },
-  async ({ event }) => {
-    const { id } = event.data;
-    await connectDB();
-    await User.findByIdAndDelete(id, userData);
-  }
-);
-
-// Inngest Function to create user's order in database
 export const createUserOrder = inngest.createFunction(
   {
     id: "create-user-order",
@@ -78,17 +62,29 @@ export const createUserOrder = inngest.createFunction(
     event: "order/created",
   },
   async ({ events }) => {
+    console.log("Inngest createUserOrder triggered with events:", events.length);
+
     const orders = events.map((event) => {
+      console.log("Event data:", event.data);
       return {
         userId: event.data.userId,
         items: event.data.items,
-        amount: event.amount,
-        address: event.data.sddress,
+        amount: event.data.amount,
+        address: event.data.address,
         date: event.data.date,
       };
     });
-    await connectDB()
-    await Order.insertMany(orders)
-    return{success:true,processed:orders.length}
+
+    await connectDB();
+    console.log('Orders to insert:', orders);
+
+    try {
+      const insertedOrders = await Order.insertMany(orders);
+      console.log('Inserted orders:', insertedOrders);
+      return { success: true, processed: orders.length };
+    } catch (error) {
+      console.error('Error inserting orders:', error);
+      return { success: false, error: error.message };
+    }
   }
 );
