@@ -25,7 +25,16 @@ export const AppContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
 
   const fetchProductData = async () => {
-    setProducts(productsDummyData);
+    try {
+      const { data } = await axios.get("/api/product/list");
+      if (data.success) {
+        setProducts(data.products);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const fetchUserData = async () => {
@@ -56,6 +65,7 @@ export const AppContextProvider = (props) => {
       cartData[itemId] = 1;
     }
     setCartItems(cartData);
+    toast.success('Item added to cart')
   };
 
   const updateCartQuantity = async (itemId, quantity) => {
